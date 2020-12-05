@@ -1,0 +1,21 @@
+{
+  "name": "git-backup",
+  "version": "1.0.0",
+  "description": "A utility to backup all of my repos on Gitea",
+  "main": "index.js",
+  "bin": {
+    "git-backup": "index.js"
+  },
+  "scripts": {
+    "start": "node index.js backup"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://gitea.chriswiegman.com/chriswiegman/git-backup.git"
+  },
+  "author": "Chris Wiegman <contact@chriswiegman.com>",
+  "license": "MIT",
+  "dependencies": {
+    "got": "^11.8.0"
+  }
+}
