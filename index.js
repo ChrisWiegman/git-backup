@@ -5,8 +5,8 @@
 const { exec } = require("child_process");
 const got = require('got');
 const fs = require('fs');
-const url = require('url');
 const path = require('path');
+const spawn = require('child_process').spawn;
 
 const backupDir = './backups';
 
@@ -35,7 +35,7 @@ let apiToken = '';
   const repos = await get('user/repos');
 
   repos.forEach(repo => {
-    backup(repo.ssh_url);
+    backup(repo.clone_url);
   });
 
 })();
@@ -46,51 +46,34 @@ async function get(endpoint = '') {
 
 function backup(repoURL) {
 
-  const r = url.parse(repoURL, true);
+  const r = new URL(repoURL);
+
+  r.username = r.pathname.split('/')[1];
+  r.password = apiToken;
+
   const repo = path.join(backupDir, path.basename(r.pathname));
 
-  if (!fs.existsSync(repo)) {
+  let gitArgs = ['clone', '--mirror', r.href];
+  let commandDir = backupDir;
 
-    exec(
-      'git clone --mirror ' + repoURL + ' ' + repo,
-      (error, stdout, stderr) => {
-        processBackup(repo, error, stdout, stderr);
-      }
-    );
+  if (fs.existsSync(repo)) {
 
-  } else {
-
-    exec(
-      'git remote update',
-      {
-        cwd: './' + repo
-      },
-      (error, stdout, stderr) => {
-        processBackup(repo, error, stdout, stderr);
-      }
-    );
-
-  }
-}
-
-function processBackup(repo, error, stdout, stderr) {
-
-  if (error) {
-
-    console.log(`Failed Backing up: ${repo}`);
-    console.log(error);
-    return;
-
-  }
-  if (stderr) {
-
-    console.log(`Failed Backing up: ${repo}`);
-    console.log(stderr);
-    return;
+    gitArgs = ['remote', 'update'];
+    commandDir = repo;
 
   }
 
-  console.log(`Backing up: ${repo}`);
-  console.log(stdout);
+  const gitOp = spawn('git', gitArgs, { cwd: './' + commandDir });
 
+  gitOp.stdout.on('data', function (data) {
+    console.log('stdout: ' + data.toString());
+  });
+
+  gitOp.stderr.on('data', function (data) {
+    console.log('stderr: ' + data.toString());
+  });
+
+  gitOp.on('close', function (code) {
+    console.log(repo + ': exited with code ' + code);
+  });
 }
